@@ -31,7 +31,7 @@ func NewHll(bucketCount uint64) *Hll {
 func (h *Hll) Add(item Hashable) bool {
 	hash := item.Hash()
 	// calculate bucket index
-	bucket := int(binary.BigEndian.Uint64(hash[:8])) % len(h.buckets)
+	bucket := binary.BigEndian.Uint64(hash[:8]) % uint64(len(h.buckets))
 	// calculate trailing zeros
 	trailingZeros := ctz(hash)
 	inserted := h.insertBucket(bucket, trailingZeros)
@@ -46,10 +46,10 @@ func (h *Hll) Add(item Hashable) bool {
 func (h *Hll) Has(item Hashable) bool {
 	hash := item.Hash()
 	// calculate bucket index
-	bucket := int(binary.BigEndian.Uint64(hash[:8])) % len(h.buckets)
+	bucket := binary.BigEndian.Uint64(hash[:8]) % uint64(len(h.buckets))
 	// calculate trailing zeros
 	trailingZeros := ctz(hash)
-	return h.buckets[bucket] >= trailingZeros
+	return h.buckets[bucket] != 0 && h.buckets[bucket] >= trailingZeros
 }
 
 func (h *Hll) Merge(other *Hll) bool {
@@ -57,7 +57,7 @@ func (h *Hll) Merge(other *Hll) bool {
 	// inserts are deliberately not added here.
 	var inserted bool
 	for index, bucket := range other.buckets {
-		inserted = inserted || h.insertBucket(index, bucket)
+		inserted = inserted || h.insertBucket(uint64(index), bucket)
 	}
 	return inserted
 }
@@ -72,7 +72,7 @@ func (h *Hll) Stats() *Metrics {
 	}
 }
 
-func (h *Hll) insertBucket(index int, element byte) bool {
+func (h *Hll) insertBucket(index uint64, element byte) bool {
 	if h.buckets[index] < element {
 		h.buckets[index] = element
 		return true

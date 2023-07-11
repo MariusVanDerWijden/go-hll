@@ -6,6 +6,8 @@ type Bloom struct {
 	hll *gohll.Hll
 }
 
+// NewBloom creates a new hll based bloom filter.
+// Size specifies the number of buckets and thus the memory size.
 func NewBloom(size uint64) *Bloom {
 	return &Bloom{
 		hll: gohll.NewHll(size),
