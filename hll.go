@@ -1,6 +1,7 @@
 package gohll
 
 import (
+	"encoding/binary"
 	"math/bits"
 )
 
@@ -21,10 +22,18 @@ type Hll struct {
 	updates int
 }
 
+func NewHll(bucketCount uint64) *Hll {
+	return &Hll{
+		buckets: make([]byte, bucketCount),
+	}
+}
+
 func (h *Hll) Add(item Hashable) bool {
 	hash := item.Hash()
+	// calculate bucket index
+	bucket := int(binary.BigEndian.Uint64(hash[:8])) % len(h.buckets)
+	// calculate trailing zeros
 	trailingZeros := ctz(hash)
-	bucket := int(hash[0]) % len(h.buckets)
 	inserted := h.insertBucket(bucket, trailingZeros)
 	// update metrics
 	if inserted {
@@ -62,10 +71,11 @@ func (h *Hll) insertBucket(index int, element byte) bool {
 	return false
 }
 
+// TODO for counting hashes, it might be faster to do this with uint64s
 func ctz(n [32]byte) byte {
 	tlz := 0
-	for _, val := range n {
-		zeros := bits.TrailingZeros8(val)
+	for i := 32; i > 0; i-- {
+		zeros := bits.TrailingZeros8(n[i-1])
 		tlz += zeros
 		if zeros != 8 {
 			break
