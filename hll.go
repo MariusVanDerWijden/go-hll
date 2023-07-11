@@ -43,6 +43,15 @@ func (h *Hll) Add(item Hashable) bool {
 	return inserted
 }
 
+func (h *Hll) Has(item Hashable) bool {
+	hash := item.Hash()
+	// calculate bucket index
+	bucket := int(binary.BigEndian.Uint64(hash[:8])) % len(h.buckets)
+	// calculate trailing zeros
+	trailingZeros := ctz(hash)
+	return h.buckets[bucket] >= trailingZeros
+}
+
 func (h *Hll) Merge(other *Hll) bool {
 	h.updates += other.updates
 	// inserts are deliberately not added here.
